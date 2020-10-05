@@ -146,6 +146,7 @@ body {
 
 /** Partie principale : centrée avec une ombre */
 main {
+
     position: relative;
     width: 800px;
     margin: 30px 0 0 0;
@@ -155,7 +156,7 @@ main {
     box-shadow: 10px 10px 10px #444;
 }
 main:before {
-    content: "Simulateur du jeu de la vie";
+    content: "Simulateusssr du jeu de la vie";
     position: absolute;
     height: 30px;
     top: -30px;

@@ -1,6 +1,6 @@
 "use strict";
 document.addEventListener("DOMContentLoaded", () => {
-    const GRID_SIZE = 20;
+    const GRID_SIZE = 30;
     const CANVAS_SIZE = 600;
 
 
@@ -10,10 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
      * @param {Array[]} mat2
      * @returns {boolean}
      */
-    function matrixEquals(mat1,mat2){
-        for(let i in mat1){
-            for(let j in mat1[i] ){
-                if(mat1[i][j] !== mat2[i][j]){
+    function matrixEquals(mat1, mat2) {
+        for (let i in mat1) {
+            for (let j in mat1[i]) {
+                if (mat1[i][j] !== mat2[i][j]) {
                     return false
                 }
             }
@@ -23,24 +23,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     class Game {
-        constructor() {
-            this.state = {
-                memento: [],
-                bornCellColor: "green",
-                deadCellColor: "red"
-            }
-            let matrix = new Array(GRID_SIZE);
+        /**
+         * Create a new game
+         * @param {HTMLCanvasElement} canvas
+         */
+        constructor(canvas) {
 
+            this.memento = []
+
+            let matrix = new Array(GRID_SIZE);
             for (let i = 0; i < matrix.length; ++i) {
                 matrix[i] = new Array(GRID_SIZE).fill(false);
             }
 
-            this.state.memento.push(matrix);
+            this.memento.push(matrix);
 
 
-            // TODO : take the canvas out of the class
-            this.canvas = document.getElementById("cvs");
-            this.cx = this.canvas.getContext("2d");
+            this.canvas = canvas;
+            this.cx = this.canvas.getContext('2d');
 
             this.canvas.onmouseleave = () => this.updateDisplay();
             this.canvas.onmousemove = (e) => this.drawHoverRect(e);
@@ -49,13 +49,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         get matrix() {
-            return this.state.memento[this.state.memento.length - 1];
+            return this.memento[this.memento.length - 1];
         }
 
 
-
-        addPoint(e, canvas) {
-            if(runningInterval != null){
+        /**
+         * Add a point in the matrix
+         * @param e The mouse click event
+         */
+        addPoint(e) {
+            if (runningInterval != null) {
                 return;
             }
             let rect = e.target.getBoundingClientRect();
@@ -72,30 +75,39 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        drawHoverRect(e, canvas) {
-            if(runningInterval != null){
+        /**
+         * Fill the hovered cell by grey
+         * @param e The mouse over event
+         */
+        drawHoverRect(e) {
+            if (runningInterval != null) {
                 return;
             }
-
             this.updateDisplay();
+
             let rect = e.target.getBoundingClientRect();
             let x = e.clientX - rect.left;
             let y = e.clientY - rect.top;
 
-            let cellX = x - (x % (CANVAS_SIZE / GRID_SIZE));
-            let cellY = y - (y % (CANVAS_SIZE / GRID_SIZE));
+            let cvsX = x - (x % (CANVAS_SIZE / GRID_SIZE));
+            let cvsY = y - (y % (CANVAS_SIZE / GRID_SIZE));
 
-            // TODO : check if the x & y are in the matrix
-            if (this.matrix[cellY / (CANVAS_SIZE / GRID_SIZE)][cellX / (CANVAS_SIZE / GRID_SIZE)]) {
+            let cellX  = cvsX / (CANVAS_SIZE / GRID_SIZE);
+            let cellY = cvsY / (CANVAS_SIZE / GRID_SIZE)
+
+            if(cellY >= GRID_SIZE || cellX >= GRID_SIZE || this.matrix[cellY][cellX]){
                 return;
             }
 
+
             this.cx.fillStyle = "#a0a0a0";
-            this.cx.fillRect(cellX, cellY, CANVAS_SIZE / GRID_SIZE, CANVAS_SIZE / GRID_SIZE);
+            this.cx.fillRect(cvsX, cvsY, CANVAS_SIZE / GRID_SIZE, CANVAS_SIZE / GRID_SIZE);
         }
 
-        updateDisplay(canvas) {
-
+        /**
+         * Update the display in the canvas
+         */
+        updateDisplay() {
             this.cx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
             this.matrix.forEach((row, i) =>
                 row.forEach((cell, j) => {
@@ -112,6 +124,12 @@ document.addEventListener("DOMContentLoaded", () => {
             );
         }
 
+        /**
+         * Count the number of living cell in the neighbors
+         * @param x
+         * @param y
+         * @returns {number}
+         */
         countNeighbors(x, y) {
             let res = 0;
             for (let i = x - 1; i <= x + 1; ++i) {
@@ -130,8 +148,11 @@ document.addEventListener("DOMContentLoaded", () => {
             return res;
         }
 
+        /**
+         * Move on the next generation
+         * @returns {boolean}
+         */
         next() {
-            console.log('update');
             let newMatrix = [];
             for (let i = 0; i < this.matrix.length; ++i) {
                 newMatrix[i] = [];
@@ -145,42 +166,46 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             }
 
-            if(matrixEquals(this.matrix,newMatrix)){
-                console.log('stable');
+            if (matrixEquals(this.matrix, newMatrix)) {
+                //console.log('stable');
                 return false;
             }
 
-            this.state.memento.push(newMatrix);
+            this.memento.push(newMatrix);
             this.updateDisplay();
             return true;
         }
 
-        previous(){
-            if(this.state.memento.length === 1){
+        /**
+         * Back to the previous generation
+         */
+        previous() {
+            if (this.memento.length === 1) {
                 return;
             }
-            this.state.memento.pop();
+            this.memento.pop();
             this.updateDisplay();
         }
 
 
     }
 
-    let game = new Game();
+    let game = new Game(document.getElementsByTagName('canvas')[0]);
     let runningInterval = null;
 
     document.getElementById('btnNext').onclick = () => {
-        if(runningInterval){
+        if (runningInterval) {
             return;
         }
         game.next()
     }
+
     document.getElementById('btnPlay').onclick = () => {
         if (runningInterval) {
             return;
         }
         runningInterval = setInterval(() => {
-            if(game.next() === false){
+            if (game.next() === false) {
                 clearInterval(runningInterval);
                 runningInterval = null;
             }
@@ -193,11 +218,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.getElementById('btnReset').onclick = () => {
-        if(runningInterval){
+        if (runningInterval) {
             return;
         }
         game.previous();
     }
 
-})
-;
+});
+
