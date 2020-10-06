@@ -1,7 +1,63 @@
 "use strict";
 document.addEventListener("DOMContentLoaded", () => {
 
+    // TODO : Change the previous button to reset button
+    
+    const GRID_SIZE = 30;
+    const CANVAS_SIZE = 600;
+    const interval = 300;
+
     let memento = [];
+
+    const canvas = document.getElementById('cvs');
+    const cx = canvas.getContext('2d');
+
+    initGame(GRID_SIZE);
+
+    // Canvas listener
+    canvas.onmouseleave = updateDisplay;
+    canvas.onmousemove = drawHoverRect;
+    canvas.onclick = addPoint;
+
+    let runningInterval = null;
+
+    // Buttons listener
+    // TODO : disabled
+    document.getElementById('btnNext').onclick = () => {
+        runningInterval || next()
+    }
+
+    document.getElementById('btnPlay').onclick = () => {
+        if (runningInterval) return;
+
+        runningInterval = setInterval(() => {
+            if (!next()) {
+                clearInterval(runningInterval);
+                runningInterval = null;
+            }
+        }, interval);
+    }
+
+    document.getElementById('btnStop').onclick = () => {
+        clearInterval(runningInterval);
+        runningInterval = null;
+    }
+
+    document.getElementById('btnReset').onclick = () => {
+        runningInterval || previous();
+    }
+
+    document.getElementById('btnClear').onclick = () => {
+        runningInterval || initGame();
+
+    }
+
+
+
+    //*********************************************
+    //                  FUNCTIONS
+    //*********************************************
+
 
     /**
      * Test if two matrix are equals
@@ -25,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Get the current matrix
      * @returns {Array[]}
      */
-    function CurrentMatrix() {
+    function currentMatrix() {
         return memento[memento.length - 1];
     }
 
@@ -33,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Initialize a matrix and reset the memento
      * @param size
      */
-    function initMatrix(size = GRID_SIZE) {
+    function initGame(size = GRID_SIZE) {
         let matrix = new Array(size);
 
         for (let i = 0; i < matrix.length; ++i) {
@@ -41,6 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         memento = [matrix];
+        updateDisplay();
 
     }
 
@@ -61,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let rowIndex = Math.floor(y / (CANVAS_SIZE / GRID_SIZE));
         let cellIndex = Math.floor(x / (CANVAS_SIZE / GRID_SIZE));
 
-        CurrentMatrix()[rowIndex][cellIndex] = true;
+        currentMatrix()[rowIndex][cellIndex] = true;
 
         updateDisplay();
     }
@@ -87,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
         let cellX = cvsX / (CANVAS_SIZE / GRID_SIZE);
         let cellY = cvsY / (CANVAS_SIZE / GRID_SIZE)
 
-        if (cellY >= GRID_SIZE || cellX >= GRID_SIZE || CurrentMatrix()[cellY][cellX]) {
+        if (cellY >= GRID_SIZE || cellX >= GRID_SIZE || currentMatrix()[cellY][cellX]) {
             return;
         }
 
@@ -100,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
      * Update the display in the canvas
      */
     function updateDisplay() {
-        let matrix = CurrentMatrix();
+        let matrix = currentMatrix();
 
         cx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
@@ -121,13 +178,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /**
      * Count the number of living cell in the neighbors
-     * @param x
-     * @param y
+     * @param {number} x
+     * @param {number} y
      * @returns {number}
      */
     function countNeighbors(x, y) {
         let res = 0;
-        let matrix = CurrentMatrix();
+        let matrix = currentMatrix();
         for (let i = x - 1; i <= x + 1; ++i) {
             for (let j = y - 1; j <= y + 1; ++j) {
                 if (i >= 0 &&
@@ -146,11 +203,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     /**
      * Move on the next generation
-     * @returns {boolean}
+     * @returns {boolean} True if the next generation is different of the current, false otherwise
      */
     function next() {
         let newMatrix = [];
-        let matrix = CurrentMatrix();
+        let matrix = currentMatrix();
+
         for (let i = 0; i < matrix.length; ++i) {
             newMatrix[i] = [];
             for (let j = 0; j < matrix.length; ++j) {
@@ -163,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
-        if (matrixEquals(CurrentMatrix(), newMatrix)) {
+        if (matrixEquals(currentMatrix(), newMatrix)) {
             return false;
         }
 
@@ -184,56 +242,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateDisplay();
     }
 
-
-    //******************************************
-    //                  SCRIPT
-    //******************************************
-
-    const GRID_SIZE = 30;
-    const CANVAS_SIZE = 600;
-
-    initMatrix(GRID_SIZE);
-
-    /*** @type {HTMLCanvasElement} */
-    let canvas = document.getElementsByTagName('canvas')[0];
-    let cx = canvas.getContext('2d');
-
-    canvas.onmouseleave = () => updateDisplay();
-    canvas.onmousemove = (e) => drawHoverRect(e);
-    canvas.onclick = (e) => addPoint(e);
-
-    let runningInterval = null;
-
-    document.getElementById('btnNext').onclick = () => {
-        if (runningInterval) {
-            return;
-        }
-        next()
-    }
-
-    document.getElementById('btnPlay').onclick = () => {
-        if (runningInterval) {
-            return;
-        }
-        runningInterval = setInterval(() => {
-            if (next() === false) {
-                clearInterval(runningInterval);
-                runningInterval = null;
-            }
-        }, 300);
-    }
-
-    document.getElementById('btnStop').onclick = () => {
-        clearInterval(runningInterval);
-        runningInterval = null;
-    }
-
-    document.getElementById('btnReset').onclick = () => {
-        if (runningInterval) {
-            return;
-        }
-        previous();
-    }
 
 });
 
