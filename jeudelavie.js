@@ -1,7 +1,6 @@
 "use strict";
 document.addEventListener("DOMContentLoaded", () => {
 
-
     // Constants
     const CANVAS_SIZE = 600;
     const NOT_ALIVE = 0;
@@ -19,24 +18,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     buttons.stop.setAttribute('disabled', '');
 
-    // Speed
+    // Speed selector
     const radSpeed = document.getElementsByName('radSpeed');
 
-    // Size
+    // Size selector
     const select = document.getElementById('selResolution');
 
 
-    // Color
-    let colorNewInput = document.getElementById('colorNew');
-    let colorNewCheckbox = document.getElementById('cbNew');
-    let colorDyingInput = document.getElementById('colorDying');
-    let colorDyingCheckbox = document.getElementById('cbDying');
-    let colorBaseInput = document.getElementById('colorBase');
+    // Color selector
+    const colorNewInput = document.getElementById('colorNew');
+    const colorNewCheckbox = document.getElementById('cbNew');
+    const colorDyingInput = document.getElementById('colorDying');
+    const colorDyingCheckbox = document.getElementById('cbDying');
+    const colorBaseInput = document.getElementById('colorBase');
 
 
     // Game settings
     let gridSize = Number(select.children[select.selectedIndex].value);
-    let speed = Number(document.querySelector('[name="radSpeed"]:checked').value);
 
 
     // Game
@@ -52,15 +50,19 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.onmousemove = drawHoverRect;
     canvas.onclick = addPoint;
 
+    // Color input listeners
+   [colorBaseInput,colorDyingCheckbox, colorNewCheckbox, colorDyingInput, colorNewInput].forEach(input => {
+       input.oninput = updateDisplay;
+   })
 
-    // TODO: change speed during playing
+    // Speed selector listeners
     radSpeed.forEach(rad => rad.onchange = () => {
-        speed = Number(document.querySelector('[name="radSpeed"]:checked').value);
+        if(!runningInterval) return
         stop();
         play();
     })
 
-
+    // Size selector listeners
     select.onchange = () => {
         if (!confirm('Are you sure ? ')) {
             return;
@@ -96,6 +98,9 @@ document.addEventListener("DOMContentLoaded", () => {
     //                  FUNCTIONS
     //*********************************************
 
+    /**
+     * Run the game automatically
+     */
     function play() {
         runningInterval = setInterval(() => {
             if (!next()) {
@@ -103,11 +108,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 runningInterval = null;
                 updateButtons();
             }
-        }, speed);
+        }, Number(document.querySelector('[name="radSpeed"]:checked').value));
 
         updateButtons();
     }
 
+    /**
+     * Stop the game
+     */
     function stop() {
         clearInterval(runningInterval);
         runningInterval = null;
@@ -225,7 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         matrix.forEach((row, i) =>
             row.forEach((cell, j) => {
-                // TODO : set color from input
                 if (cell) {
                     let color;
                     if (cell === NEW_BORN && colorNewCheckbox.checked) {
