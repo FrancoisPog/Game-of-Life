@@ -1,63 +1,131 @@
 "use strict";
 document.addEventListener("DOMContentLoaded", () => {
 
-    // TODO : Change the previous button to reset button
-    
-    const GRID_SIZE = 30;
+
+    // Constants
     const CANVAS_SIZE = 600;
-    const interval = 300;
+    const NOT_ALIVE = 0;
+    const ALIVE = 1;
+    const NEW_BORN = 2;
 
-    let memento = [];
-
+    // Canvas
     const canvas = document.getElementById('cvs');
     const cx = canvas.getContext('2d');
 
-    initGame(GRID_SIZE);
+    // Buttons
+    const buttons = {}
+    for (let type of ['Play', 'Next', 'Clear', 'Reset', 'Stop']) {
+        buttons[type.toLowerCase()] = document.getElementById(`btn${type}`);
+    }
+    buttons.stop.setAttribute('disabled', '');
+
+    // Speed
+    const radSpeed = document.getElementsByName('radSpeed');
+
+    // Size
+    const select = document.getElementById('selResolution');
+
+
+    // Color
+    let colorNewInput = document.getElementById('colorNew');
+    let colorNewCheckbox = document.getElementById('cbNew');
+    let colorDyingInput = document.getElementById('colorDying');
+    let colorDyingCheckbox = document.getElementById('cbDying');
+    let colorBaseInput = document.getElementById('colorBase');
+
+
+    // Game settings
+    let gridSize = Number(select.children[select.selectedIndex].value);
+    let speed = Number(document.querySelector('[name="radSpeed"]:checked').value);
+
+
+    // Game
+    let memento;
+    let matrix;
+    let runningInterval = null;
+
+
+    initGame();
 
     // Canvas listener
     canvas.onmouseleave = updateDisplay;
     canvas.onmousemove = drawHoverRect;
     canvas.onclick = addPoint;
 
-    let runningInterval = null;
+
+    // TODO: change speed during playing
+    radSpeed.forEach(rad => rad.onchange = () => {
+        speed = Number(document.querySelector('[name="radSpeed"]:checked').value);
+        stop();
+        play();
+    })
+
+
+    select.onchange = () => {
+        if (!confirm('Are you sure ? ')) {
+            return;
+        }
+        stop();
+        gridSize = Number(select.children[select.selectedIndex].value);
+        initGame();
+    }
+
 
     // Buttons listener
-    // TODO : disabled
-    document.getElementById('btnNext').onclick = () => {
+    buttons.next.onclick = () => {
         runningInterval || next()
     }
 
-    document.getElementById('btnPlay').onclick = () => {
-        if (runningInterval) return;
-
-        runningInterval = setInterval(() => {
-            if (!next()) {
-                clearInterval(runningInterval);
-                runningInterval = null;
-            }
-        }, interval);
+    buttons.play.onclick = () => {
+        runningInterval || play();
     }
 
-    document.getElementById('btnStop').onclick = () => {
-        clearInterval(runningInterval);
-        runningInterval = null;
+    buttons.stop.onclick = stop;
+
+    buttons.reset.onclick = () => {
+        runningInterval || reset();
     }
 
-    document.getElementById('btnReset').onclick = () => {
-        runningInterval || previous();
-    }
-
-    document.getElementById('btnClear').onclick = () => {
+    buttons.clear.onclick = () => {
         runningInterval || initGame();
 
     }
-
 
 
     //*********************************************
     //                  FUNCTIONS
     //*********************************************
 
+    function play() {
+        runningInterval = setInterval(() => {
+            if (!next()) {
+                clearInterval(runningInterval);
+                runningInterval = null;
+                updateButtons();
+            }
+        }, speed);
+
+        updateButtons();
+    }
+
+    function stop() {
+        clearInterval(runningInterval);
+        runningInterval = null;
+        updateButtons();
+    }
+
+    /**
+     * Update the buttons 'disable' argument
+     */
+    function updateButtons() {
+        for (let element of Object.values(buttons)) {
+            if(element === buttons.stop ^ runningInterval !== null){
+                element.setAttribute('disabled','');
+            }else{
+                element.removeAttribute('disabled');
+            }
+        }
+    }
 
     /**
      * Test if two matrix are equals
@@ -78,25 +146,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /**
-     * Get the current matrix
-     * @returns {Array[]}
-     */
-    function currentMatrix() {
-        return memento[memento.length - 1];
-    }
-
-    /**
      * Initialize a matrix and reset the memento
-     * @param size
      */
-    function initGame(size = GRID_SIZE) {
-        let matrix = new Array(size);
+    function initGame() {
+        matrix = new Array(gridSize);
 
         for (let i = 0; i < matrix.length; ++i) {
-            matrix[i] = new Array(size).fill(false);
+            matrix[i] = new Array(gridSize).fill(NOT_ALIVE);
         }
 
-        memento = [matrix];
+        memento = matrix;
         updateDisplay();
 
     }
@@ -115,10 +174,13 @@ document.addEventListener("DOMContentLoaded", () => {
         let y = e.clientY - rect.top;
 
 
-        let rowIndex = Math.floor(y / (CANVAS_SIZE / GRID_SIZE));
-        let cellIndex = Math.floor(x / (CANVAS_SIZE / GRID_SIZE));
+        let rowIndex = Math.floor(y / (CANVAS_SIZE / gridSize));
+        let cellIndex = Math.floor(x / (CANVAS_SIZE / gridSize));
 
-        currentMatrix()[rowIndex][cellIndex] = true;
+        matrix[rowIndex][cellIndex] = ALIVE
+
+
+        memento = matrix;
 
         updateDisplay();
     }
@@ -138,53 +200,63 @@ document.addEventListener("DOMContentLoaded", () => {
         let x = e.clientX - rect.left;
         let y = e.clientY - rect.top;
 
-        let cvsX = x - (x % (CANVAS_SIZE / GRID_SIZE));
-        let cvsY = y - (y % (CANVAS_SIZE / GRID_SIZE));
+        let cvsX = x - (x % (CANVAS_SIZE / gridSize));
+        let cvsY = y - (y % (CANVAS_SIZE / gridSize));
 
-        let cellX = cvsX / (CANVAS_SIZE / GRID_SIZE);
-        let cellY = cvsY / (CANVAS_SIZE / GRID_SIZE)
+        let cellX = cvsX / (CANVAS_SIZE / gridSize);
+        let cellY = cvsY / (CANVAS_SIZE / gridSize)
 
-        if (cellY >= GRID_SIZE || cellX >= GRID_SIZE || currentMatrix()[cellY][cellX]) {
+        if (cellY >= gridSize || cellX >= gridSize || matrix[cellY][cellX]) {
             return;
         }
 
 
         cx.fillStyle = "#a0a0a0";
-        cx.fillRect(cvsX, cvsY, CANVAS_SIZE / GRID_SIZE, CANVAS_SIZE / GRID_SIZE);
+        cx.fillRect(cvsX, cvsY, CANVAS_SIZE / gridSize, CANVAS_SIZE / gridSize);
     }
 
     /**
      * Update the display in the canvas
      */
     function updateDisplay() {
-        let matrix = currentMatrix();
+
 
         cx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
         matrix.forEach((row, i) =>
             row.forEach((cell, j) => {
+                // TODO : set color from input
                 if (cell) {
-                    cx.fillStyle = "black";
+                    let color;
+                    if (cell === NEW_BORN && colorNewCheckbox.checked) {
+                        color = colorNewInput.value;
+                    } else if (!willBeAlive(i, j) && colorDyingCheckbox.checked) {
+                        color = colorDyingInput.value;
+                    } else {
+                        color = colorBaseInput.value;
+                    }
+                    cx.fillStyle = color;
                     cx.fillRect(
-                        j * (CANVAS_SIZE / GRID_SIZE),
-                        i * (CANVAS_SIZE / GRID_SIZE),
-                        CANVAS_SIZE / GRID_SIZE,
-                        CANVAS_SIZE / GRID_SIZE
+                        j * (CANVAS_SIZE / gridSize),
+                        i * (CANVAS_SIZE / gridSize),
+                        CANVAS_SIZE / gridSize,
+                        CANVAS_SIZE / gridSize
                     );
                 }
             })
         );
+
     }
 
     /**
      * Count the number of living cell in the neighbors
      * @param {number} x
      * @param {number} y
-     * @returns {number}
+     * @returns {boolean}
      */
-    function countNeighbors(x, y) {
-        let res = 0;
-        let matrix = currentMatrix();
+    function willBeAlive(x, y) {
+        let nbNeighbors = 0;
+
         for (let i = x - 1; i <= x + 1; ++i) {
             for (let j = y - 1; j <= y + 1; ++j) {
                 if (i >= 0 &&
@@ -194,11 +266,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     matrix[i][j] &&
                     !(j === y && i === x)
                 ) {
-                    res++;
+                    nbNeighbors++;
                 }
             }
         }
-        return res;
+
+        if (matrix[x][y]) {
+            return nbNeighbors === 2 || nbNeighbors === 3;
+        } else {
+            return nbNeighbors === 3;
+        }
     }
 
     /**
@@ -207,38 +284,38 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     function next() {
         let newMatrix = [];
-        let matrix = currentMatrix();
 
         for (let i = 0; i < matrix.length; ++i) {
             newMatrix[i] = [];
             for (let j = 0; j < matrix.length; ++j) {
-                let nbNeighbors = countNeighbors(i, j);
-                if (matrix[i][j]) {
-                    newMatrix[i][j] = nbNeighbors === 2 || nbNeighbors === 3;
+                if (willBeAlive(i, j)) {
+                    if (matrix[i][j]) {
+                        newMatrix[i][j] = ALIVE;
+                    } else {
+                        newMatrix[i][j] = NEW_BORN;
+                    }
                 } else {
-                    newMatrix[i][j] = nbNeighbors === 3;
+                    newMatrix[i][j] = NOT_ALIVE;
                 }
             }
         }
 
-        if (matrixEquals(currentMatrix(), newMatrix)) {
+        if (matrixEquals(matrix, newMatrix)) {
             return false;
         }
 
-        memento.push(newMatrix);
+        matrix = newMatrix;
+
         updateDisplay();
 
         return true;
     }
 
     /**
-     * Back to the previous generation
+     * Back to the initial generation
      */
-    function previous() {
-        if (memento.length === 1) {
-            return;
-        }
-        memento.pop();
+    function reset() {
+        matrix = memento;
         updateDisplay();
     }
 
