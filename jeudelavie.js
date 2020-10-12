@@ -51,13 +51,13 @@ document.addEventListener("DOMContentLoaded", () => {
     canvas.onclick = addPoint;
 
     // Color input listeners
-   [colorBaseInput,colorDyingCheckbox, colorNewCheckbox, colorDyingInput, colorNewInput].forEach(input => {
-       input.oninput = updateDisplay;
-   })
+    [colorBaseInput, colorDyingCheckbox, colorNewCheckbox, colorDyingInput, colorNewInput].forEach(input => {
+        input.oninput = updateDisplay;
+    })
 
     // Speed selector listeners
     radSpeed.forEach(rad => rad.onchange = () => {
-        if(!runningInterval) return
+        if (!runningInterval) return
         stop();
         play();
     })
@@ -65,6 +65,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Size selector listeners
     select.onchange = () => {
         if (!confirm('Are you sure ? ')) {
+            Array.from(select.children).forEach((opt, i) => {
+                if (Number(opt.value) === gridSize) {
+                    select.selectedIndex = i;
+                }
+            })
             return;
         }
         stop();
@@ -127,9 +132,9 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     function updateButtons() {
         for (let element of Object.values(buttons)) {
-            if(element === buttons.stop ^ runningInterval !== null){
-                element.setAttribute('disabled','');
-            }else{
+            if (element === buttons.stop ^ runningInterval !== null) {
+                element.setAttribute('disabled', '');
+            } else {
                 element.removeAttribute('disabled');
             }
         }
